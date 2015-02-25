@@ -64,7 +64,7 @@ void PrefEditor::initGearPref()
   gearPref.gp.gear[21] = 1;
 
   int i = 0;
-  while (i < 23) {
+  while (i < 24) {
 
     gearPref.gp.servoPositionList[i] = 1500;
     i++;
@@ -130,17 +130,17 @@ void PrefEditor::print() {
     i++;
   }
   Serial.println();
-  i=0;
-    while (i < 24) {
+  i = 0;
+ while (i < 24) {
     Serial.print(i);
     Serial.print(":");
     Serial.print(gearPref.gp.servoPositionList[i]);
     Serial.print(" ");
 
     i++;
-  }
+  } 
   Serial.println();
-  
+
 }
 void PrefEditor::readGearPosition() {
   gearPosition[0] = EEPROM.read(EEPROM_ADDR_GEARPOSITION_FRONT);
@@ -156,7 +156,7 @@ void PrefEditor::saveGearPosition() {
     EEPROM.write(EEPROM_ADDR_GEARPOSITION_REAR, gearPosition[1]);
     Serial.println("rear saved");
   }
- 
+
 }
 
 

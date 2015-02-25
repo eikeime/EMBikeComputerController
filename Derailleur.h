@@ -31,6 +31,7 @@ class Derailleur
     void trim(bool b);
     void shiftTo(uint8_t front, uint8_t rear);
     void trim();
+    bool isTrim();
     int getServoSeconds(int i);
 };
 

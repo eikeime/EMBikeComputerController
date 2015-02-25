@@ -139,6 +139,9 @@ void Derailleur::trim(bool b) {
 
 
 }
+bool Derailleur::isTrim(){
+    return trim_switch;
+}
 void Derailleur::trim()
 {
   if (needTrim && trim_switch)
@@ -185,7 +188,7 @@ void Derailleur::shiftTo(uint8_t front, uint8_t rear)
       {
         if (*gearPosition + 2 < *gear) {
           servo[0].writeMicroseconds(*(servoPositionList + *gearPosition + 2));
-          *gearPosition += 2;
+          *gearPosition +=2;
           shiftTimeStamp = millis();
           needTrim = true;
         }
@@ -246,7 +249,7 @@ void Derailleur::shiftTo(uint8_t front, uint8_t rear)
   Serial.print(*(gearPosition + 1));
   Serial.print(" > ");
   Serial.println(servo[1].readMicroseconds());
-
+      tone(SPEAKER_PIN,SPEAKER_FREQ,50);
   Serial.println("----------------");
   pe->saveGearPosition();
 }

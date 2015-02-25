@@ -15,6 +15,7 @@ class ShifterManual : public Shifter
     void rightDown();
     void leftUp();
     void leftDown();
+    void sync(int8_t direction);
 
 
 
