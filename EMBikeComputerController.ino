@@ -33,17 +33,24 @@ Button bLeftDown = Button(BUTTON_LEFT_DOWN, BUTTON_NORMAL_LATENCY, true);
 Button bRightUp = Button(BUTTON_RIGHT_UP, BUTTON_NORMAL_LATENCY, true);
 Button bRightDown = Button(BUTTON_RIGHT_DOWN, BUTTON_NORMAL_LATENCY, true);
 Button bSet = Button(BUTTON_SET, BUTTON_NORMAL_LATENCY, true);
-
+bool lcd_exist = false;
 
 uint8_t mode = 0;//working mode init,normal,setup front,setup rear
 
 void setup()
 {
-
+  
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
+  Wire.begin();
   Serial.begin(9600);
+  
   Serial.println("Listening...");
+
+
+
+
+
   pe = PrefEditor();
   if (pe.init()) {
     mode = 1;
@@ -55,33 +62,48 @@ void setup()
   shifter = &shifterManual;
   delay(200);
   derailleur.ServoOn();
-  lcd.begin();
-  lcd.clear();
+  Wire.beginTransmission(0x3C);
+  if (Wire.endTransmission() == 0) {
+    Serial.println("LCD OK");
+    lcd_exist = true;
+    lcd.begin();
+    lcd.clear();
+  }
+
 }
 
 void loop()
 {
+  if (lcd_exist) {
 
+    lcd.setCursor(0, 0);
+    lcd.print("F:");
+    lcd.setFontSize(FONT_SIZE_LARGE);
+    if (mode == 1) {
+      lcd.printInt(*pe.getGear(), 2);
+    } else {
+      lcd.printInt(*pe.getGearPosition(), 2);
+    }
+    lcd.print(":");
+    lcd.printInt(derailleur.getServoSeconds(0), 4);
 
-  lcd.setCursor(0, 0);
-  lcd.print("F:");
-  lcd.setFontSize(FONT_SIZE_LARGE);
-  lcd.printInt(*pe.getGearPosition(), 2);
-  lcd.print(":");
-  lcd.printInt(derailleur.getServoSeconds(0), 4);
+    lcd.setCursor(0, 3);
+    lcd.setFontSize(FONT_SIZE_LARGE);
+    lcd.print("R:");
+    if (mode == 1) {
+      lcd.printInt(*(pe.getGear() + 1), 2);
+    } else {
+      lcd.printInt(*(pe.getGearPosition() + 1), 2);
+    }
 
-  lcd.setCursor(0, 3);
-  lcd.setFontSize(FONT_SIZE_LARGE);
-  lcd.print("R:");
-  lcd.printInt(*(pe.getGearPosition() + 1), 2);
-  lcd.print(":");
-  lcd.printInt(derailleur.getServoSeconds(1), 4);
+    lcd.print(":");
+    lcd.printInt(derailleur.getServoSeconds(1), 4);
 
-  lcd.setCursor(0, 6);
-  lcd.setFontSize(FONT_SIZE_LARGE);
-  lcd.print("MODE:");
-  lcd.printInt(mode, 2);
-
+    lcd.setCursor(0, 6);
+    lcd.setFontSize(FONT_SIZE_LARGE);
+    lcd.print("MODE:");
+    lcd.printInt(mode, 2);
+  }
   if (bSet.check()) {
     tone(SPEAKER_PIN, SPEAKER_FREQ, SPEAKER_DUR);
     if (mode < 3) {
@@ -90,31 +112,37 @@ void loop()
     } else {
       mode = 0;
       pe.init(false);
+      pe.tuneAll();
       pe.save();
     }
-    
+
     if (mode == 0) {
       derailleur.trim(true);
-      shifter->setSync(true);
+      shifter->sync(true);
       bLeftUp.setLatency(BUTTON_NORMAL_LATENCY);
       bLeftDown.setLatency(BUTTON_NORMAL_LATENCY);
     } else if (mode == 1 ) {
       //shifter->Refresh();
       derailleur.trim(false);
-      shifter->setSync(false);
+      shifter->sync(false);
+      bLeftUp.setLatency(BUTTON_NORMAL_LATENCY);
+      bLeftDown.setLatency(BUTTON_NORMAL_LATENCY);
     } else if (mode == 2 ) {
       shifter->Refresh();
       derailleur.trim(false);
+      shifter->sync(false);
+      bLeftUp.setLatency(BUTTON_NORMAL_LATENCY);
+      bLeftDown.setLatency(BUTTON_NORMAL_LATENCY);
     }
     else if ( mode == 3) {
       derailleur.trim(true);
-      shifter->setSync(false);
+      shifter->sync(false);
       bLeftUp.setLatency(BUTTON_SHORT_LATENCY);
       bLeftDown.setLatency(BUTTON_SHORT_LATENCY);
 
-    }else if(mode ==4){
-    
-    
+    } else if (mode == 4) {
+
+
     }
 
 
@@ -284,11 +312,23 @@ void Mode3() {
     tone(SPEAKER_PIN, SPEAKER_FREQ, SPEAKER_DUR);
   }
   if (bRightUp.check()) {
-    shifter->rightUp();
+    if (*(pe.getGear() + 1) >= 4) {
+      derailleur.shiftTo(*pe.getGearPosition(), *(pe.getGear() + 1) - 2);
+    } else {
+      shifter->rightUp();
+    }
     Serial.println("Button:RIGHT UP");
   }
   if (bRightDown.check()) {
-    shifter->rightDown();
+    if (*(pe.getGear() + 1) >= 4) {
+      derailleur.shiftTo(*pe.getGearPosition(), 1);
+
+    } else {
+      shifter->rightDown();
+    }
+
+
+
     Serial.println("Button:RIGHT DOWN");
   }
 

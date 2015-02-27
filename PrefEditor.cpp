@@ -69,9 +69,11 @@ void PrefEditor::initGearPref()
     gearPref.gp.servoPositionList[i] = 1500;
     i++;
   }
+  gearPosition[0] = 0;
+  gearPosition[1] = 0;
+  saveGearPosition();
   save();
-  EEPROM.write(EEPROM_ADDR_GEARPOSITION_FRONT, 0);
-  EEPROM.write(EEPROM_ADDR_GEARPOSITION_REAR, 0);
+
 
 }
 
@@ -131,14 +133,14 @@ void PrefEditor::print() {
   }
   Serial.println();
   i = 0;
- while (i < 24) {
+  while (i < 24) {
     Serial.print(i);
     Serial.print(":");
     Serial.print(gearPref.gp.servoPositionList[i]);
     Serial.print(" ");
 
     i++;
-  } 
+  }
   Serial.println();
 
 }
@@ -158,5 +160,21 @@ void PrefEditor::saveGearPosition() {
   }
 
 }
+void PrefEditor::tuneAll() {
 
+  int16_t gap =  (int16_t)((float)( gearPref.gp.servoPositionList[gearPref.gp.gear[1] + 6] - gearPref.gp.servoPositionList[9] ) / (gearPref.gp.gear[1] - 3));
+
+  int i = 2;
+  while (i < (gearPref.gp.gear[1] - 2)) {
+
+    gearPref.gp.servoPositionList[i + 8] = gearPref.gp.servoPositionList[9] + gap * (i - 1);
+
+    i++;
+  }
+
+  gearPref.gp.servoPositionList[8] = gearPref.gp.servoPositionList[9] - gap * 1.20;
+
+  gearPref.gp.servoPositionList[gearPref.gp.gear[1] + 7] = gearPref.gp.servoPositionList[gearPref.gp.gear[1] + 6] + gap * 1.20;
+
+}
 

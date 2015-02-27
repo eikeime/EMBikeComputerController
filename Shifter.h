@@ -17,7 +17,7 @@ class Shifter
     void Setup(Derailleur * derailleur, uint8_t *g, int8_t *gp);
     void Refresh();
     void print();
-    void setSync(bool b);
+    void sync(bool b);
     virtual void rightUp()=0;
     virtual void rightDown()=0;
     virtual void leftUp()=0;

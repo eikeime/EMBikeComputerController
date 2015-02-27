@@ -20,6 +20,7 @@ class PrefEditor
     void print();
     void readGearPosition();
     void saveGearPosition();
+    void tuneAll();
 };
 #endif
 

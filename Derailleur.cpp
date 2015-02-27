@@ -41,8 +41,8 @@ void Derailleur::ServoOn()
 {
   Serial.println("===servo ON===");
   servo[0].attach(DERAILLEUR_SERVO_FRONT);
-  servo[1].attach(DERAILLEUR_SERVO_REAR);
-  //  shiftTo(*gearPosition, *(gearPosition + 1));
+
+
 
   if (servo[0].attached() && *gear > 0)
   {
@@ -54,6 +54,10 @@ void Derailleur::ServoOn()
   {
     Serial.println("error servo:0 is off");
   }
+
+  delay(500);
+  servo[1].attach(DERAILLEUR_SERVO_REAR);
+
   if (servo[1].attached() && *(gear + 1) > 0)
   {
     servo[1].writeMicroseconds(*(servoPositionList + 8 + * (gearPosition + 1)));
@@ -123,8 +127,9 @@ void Derailleur::trim(bool b) {
 
   if (b) {
     trim();
+    Serial.println("Trim:On");
   } else {
-
+    Serial.println("Trim:Off");
     if (servo[0].attached())
     {
 
@@ -139,8 +144,8 @@ void Derailleur::trim(bool b) {
 
 
 }
-bool Derailleur::isTrim(){
-    return trim_switch;
+bool Derailleur::isTrim() {
+  return trim_switch;
 }
 void Derailleur::trim()
 {
@@ -188,7 +193,7 @@ void Derailleur::shiftTo(uint8_t front, uint8_t rear)
       {
         if (*gearPosition + 2 < *gear) {
           servo[0].writeMicroseconds(*(servoPositionList + *gearPosition + 2));
-          *gearPosition +=2;
+          *gearPosition += 2;
           shiftTimeStamp = millis();
           needTrim = true;
         }
@@ -249,14 +254,14 @@ void Derailleur::shiftTo(uint8_t front, uint8_t rear)
   Serial.print(*(gearPosition + 1));
   Serial.print(" > ");
   Serial.println(servo[1].readMicroseconds());
-      tone(SPEAKER_PIN,SPEAKER_FREQ,50);
+  tone(SPEAKER_PIN, SPEAKER_FREQ, 50);
   Serial.println("----------------");
   pe->saveGearPosition();
 }
 
 
-int Derailleur::getServoSeconds(int i){
-return servo[i].readMicroseconds();
+int Derailleur::getServoSeconds(int i) {
+  return servo[i].readMicroseconds();
 
 }
 

@@ -28,7 +28,7 @@ void Shifter::Refresh() {
     uint8_t r = 0;
     do
     {
-      ratio[f][r] = (float) * (gear + 2 + f) / (float) * (gear + 6 + *(gear+1)-r-1);// *gear == gearCount
+      ratio[f][r] = (float) * (gear + 2 + f) / (float) * (gear + 6 + * (gear + 1) - r - 1); // *gear == gearCount
       r++;
     }
     while (r < * (gear + 1));
@@ -60,7 +60,12 @@ void Shifter::print() {
   }
   while (f < *gear / 2);
 }
-void Shifter::setSync(bool b) {
-  isSync == b;
+void Shifter::sync(bool b) {
+  isSync = b;
+  if (b) {
+    Serial.println("Sync:On");
+  } else {
+    Serial.println("Sync:Off");
+  }
 }
 

@@ -9,6 +9,7 @@ class ShifterSmart : protected Shifter
 
 
   public:
+    ShifterSmart(): Shifter() {};
     void rightUp();
     void rightDown();
     void leftUp();
