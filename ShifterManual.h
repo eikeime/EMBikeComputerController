@@ -25,3 +25,4 @@ class ShifterManual : public Shifter
 };
 #endif
 
+

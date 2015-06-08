@@ -41,7 +41,9 @@ void ShifterManual::leftDown() {
 
 void ShifterManual::sync(int8_t direction) {
   if (isSync) {
-
+    if(direction==-1){
+    delay(500);
+    }
 
     int g = *gearPosition;
     if (g % 2 == 1) {
@@ -67,3 +69,4 @@ void ShifterManual::sync(int8_t direction) {
     }
   }
 }
+

@@ -7,6 +7,7 @@ class Shifter
   
     Derailleur * d;
     static float ratio[4][16];
+    static PrefEditor *_pe;
     uint8_t *gear;
   
     int8_t * gearPosition;
@@ -14,7 +15,7 @@ class Shifter
   public:
     Shifter();
     //Shifter(Derailleur * derailleur, uint8_t *gear, int8_t *gp);
-    void Setup(Derailleur * derailleur, uint8_t *g, int8_t *gp);
+    void Setup(Derailleur * derailleur, uint8_t *g, int8_t *gp,PrefEditor *pe);
     void Refresh();
     void print();
     void sync(bool b);
@@ -27,4 +28,5 @@ class Shifter
 };
 
 #endif
+
 

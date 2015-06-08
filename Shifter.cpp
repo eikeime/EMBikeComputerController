@@ -7,14 +7,17 @@
 
 
 float Shifter::ratio[4][16];
+PrefEditor*  Shifter::_pe;
 
 Shifter::Shifter() {}
-void Shifter::Setup(Derailleur * derailleur, uint8_t *g, int8_t *gp) {
+void Shifter::Setup(Derailleur * derailleur, uint8_t *g, int8_t *gp, PrefEditor *pe) {
   d = derailleur;
   //setup gear position
   gearPosition = gp;
   //setup gear count
   gear = g;
+  _pe = pe;
+  isSync = _pe->sync();
   Refresh();
 }
 
@@ -68,4 +71,5 @@ void Shifter::sync(bool b) {
     Serial.println("Sync:Off");
   }
 }
+
 

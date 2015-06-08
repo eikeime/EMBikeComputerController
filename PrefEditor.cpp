@@ -4,24 +4,6 @@
 
 #include "config.h"
 #include "PrefEditor.h"
-
-
-PrefEditor::PrefEditor()   // init  data
-{
-  Serial.println("peconstruct");
-  if (init()) {
-    Serial.println("initing");
-    initGearPref();
-  } else {
-    Serial.println("reading");
-    read();
-  }
-
-
-
-}
-
-
 union
 {
   struct
@@ -33,6 +15,27 @@ union
   } gp;
   uint8_t storage[sizeof(gp)];
 } gearPref;
+
+PrefEditor::PrefEditor()   // init  data
+{
+//  Serial.println("peconstruct");
+  if (init()) {
+//    Serial.println("initing");
+    initGearPref();
+    trim(true);
+    sync(true);
+  } else {
+//    Serial.println("reading");
+    read();
+    gap =  (int16_t)((float)( gearPref.gp.servoPositionList[gearPref.gp.gear[1] + 6] - gearPref.gp.servoPositionList[9] ) / (gearPref.gp.gear[1] - 3));
+  }
+
+
+
+}
+
+
+
 
 
 void PrefEditor::initGearPref()
@@ -99,7 +102,9 @@ bool PrefEditor::init() {
 }
 
 void PrefEditor::init(bool b) {
-  EEPROM.write(EEPROM_ADDR_INIT, b);
+//  Serial.println("init");
+  if(EEPROM.read(EEPROM_ADDR_INIT)!= b){
+  EEPROM.write(EEPROM_ADDR_INIT, b);}
 }
 void PrefEditor::save() {
   int size = sizeof(gearPref.storage);
@@ -108,7 +113,7 @@ void PrefEditor::save() {
     EEPROM.write(EEPROM_ADDR_GEARPREF_START + i, gearPref.storage[i]);
     i++;
   }
-  Serial.println("SAVE");
+//  Serial.println("SAVE");
 }
 void PrefEditor::read() {
   int size = sizeof(gearPref.storage);
@@ -124,20 +129,20 @@ void PrefEditor::read() {
 void PrefEditor::print() {
   int i = 0;
   while (i < 22) {
-    Serial.print(i);
-    Serial.print(":");
-    Serial.print(gearPref.gp.gear[i]);
-    Serial.print(" ");
+//    Serial.print(i);
+//    Serial.print(":");
+//    Serial.print(gearPref.gp.gear[i]);
+//    Serial.print(" ");
 
     i++;
   }
   Serial.println();
   i = 0;
   while (i < 24) {
-    Serial.print(i);
-    Serial.print(":");
-    Serial.print(gearPref.gp.servoPositionList[i]);
-    Serial.print(" ");
+//    Serial.print(i);
+//    Serial.print(":");
+//    Serial.print(gearPref.gp.servoPositionList[i]);
+//    Serial.print(" ");
 
     i++;
   }
@@ -149,20 +154,20 @@ void PrefEditor::readGearPosition() {
   gearPosition[1] = EEPROM.read(EEPROM_ADDR_GEARPOSITION_REAR);
 }
 void PrefEditor::saveGearPosition() {
-  Serial.println("save triggered");
+//  Serial.println("save triggered");
   if (gearPosition[0] != EEPROM.read(EEPROM_ADDR_GEARPOSITION_FRONT)) {
     EEPROM.write(EEPROM_ADDR_GEARPOSITION_FRONT, gearPosition[0]);
-    Serial.println("front saved");
+//    Serial.println("front saved");
   }
   if (gearPosition[1] != EEPROM.read(EEPROM_ADDR_GEARPOSITION_REAR)) {
     EEPROM.write(EEPROM_ADDR_GEARPOSITION_REAR, gearPosition[1]);
-    Serial.println("rear saved");
+//    Serial.println("rear saved");
   }
 
 }
 void PrefEditor::tuneAll() {
 
-  int16_t gap =  (int16_t)((float)( gearPref.gp.servoPositionList[gearPref.gp.gear[1] + 6] - gearPref.gp.servoPositionList[9] ) / (gearPref.gp.gear[1] - 3));
+  gap =  (int16_t)((float)( gearPref.gp.servoPositionList[gearPref.gp.gear[1] + 6] - gearPref.gp.servoPositionList[9] ) / (gearPref.gp.gear[1] - 3));
 
   int i = 2;
   while (i < (gearPref.gp.gear[1] - 2)) {
@@ -172,9 +177,24 @@ void PrefEditor::tuneAll() {
     i++;
   }
 
-  gearPref.gp.servoPositionList[8] = gearPref.gp.servoPositionList[9] - gap * 1.20;
+  gearPref.gp.servoPositionList[8] = gearPref.gp.servoPositionList[9] - gap * 1.35;
 
-  gearPref.gp.servoPositionList[gearPref.gp.gear[1] + 7] = gearPref.gp.servoPositionList[gearPref.gp.gear[1] + 6] + gap * 1.20;
+  gearPref.gp.servoPositionList[gearPref.gp.gear[1] + 7] = gearPref.gp.servoPositionList[gearPref.gp.gear[1] + 6] + gap * 1.35;
 
+}
+void PrefEditor::trim(bool b) {
+//  Serial.print("trim ");
+//  Serial.println(b);
+  EEPROM.write(EEPROM_ADDR_TRIM_SWITCH, b);
+}
+bool PrefEditor::trim() {
+//  Serial.println("trim ***********");
+  return (bool)EEPROM.read(EEPROM_ADDR_TRIM_SWITCH);
+}
+void PrefEditor::sync(bool b) {
+  EEPROM.write(EEPROM_ADDR_SYNC_SWITCH, b);
+}
+bool PrefEditor::sync() {
+  return (bool)EEPROM.read(EEPROM_ADDR_SYNC_SWITCH);
 }
 

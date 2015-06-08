@@ -5,7 +5,7 @@ class Derailleur
 {
   protected:
 
-     uint8_t *gear;
+    uint8_t *gear;
     int8_t * gearPosition;
     int16_t *servoPositionList;
     uint32_t shiftTimeStamp = 0;
@@ -32,11 +32,13 @@ class Derailleur
     void shiftTo(uint8_t front, uint8_t rear);
     void trim();
     bool isTrim();
-    int getServoSeconds(int i);
+    int getServoMicroSeconds(int i);
+    void sendData(byte data);
 };
 
 
 #endif
+
 
 
 

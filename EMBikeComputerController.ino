@@ -1,112 +1,164 @@
 
 
-
 #include <Arduino.h>
 #include <Wire.h>
 #include <EEPROM.h>
 #include <SPI.h>
 #include <Servo.h>
-#include <Mirf.h>
-#include <nRF24L01.h>
-#include <MirfHardwareSpiDriver.h>
+//#include <Mirf.h>
+//#include <nRF24L01.h>
+//#include <MirfHardwareSpiDriver.h>
 #include <Button.h>
 #include <MicroLCD.h>
+
 
 #include "config.h"
 #include "PrefEditor.h"
 #include "Derailleur.h"
 #include "Shifter.h"
-#include "ShifterSmart.h"
+//#include "ShifterSmart.h"
 #include "ShifterManual.h"
 
 
-LCD_SSD1306 lcd;
-PrefEditor pe;
+
+
+PrefEditor pe = PrefEditor();
+Derailleur derailleur = Derailleur(&pe);
 
 Shifter *shifter;
-Derailleur derailleur = Derailleur();
 ShifterManual shifterManual = ShifterManual();
-
-
+LCD_SSD1306 lcd;
+bool lcd_exist = false;
+bool shifter_exist = false;
 Button bLeftUp = Button(BUTTON_LEFT_UP, BUTTON_NORMAL_LATENCY, true);
 Button bLeftDown = Button(BUTTON_LEFT_DOWN, BUTTON_NORMAL_LATENCY, true);
 Button bRightUp = Button(BUTTON_RIGHT_UP, BUTTON_NORMAL_LATENCY, true);
 Button bRightDown = Button(BUTTON_RIGHT_DOWN, BUTTON_NORMAL_LATENCY, true);
 Button bSet = Button(BUTTON_SET, BUTTON_NORMAL_LATENCY, true);
-bool lcd_exist = false;
+
 
 uint8_t mode = 0;//working mode init,normal,setup front,setup rear
 
 void setup()
 {
-  
+
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
   Wire.begin();
+
   Serial.begin(9600);
-  
-  Serial.println("Listening...");
 
 
-
-
-
-  pe = PrefEditor();
   if (pe.init()) {
-    mode = 1;
+    mode = 4;
   }
+
   pe.print();
-  derailleur.setPref(&pe);
-  shifterManual.Setup(&derailleur, pe.getGear(), pe.getGearPosition());
-  //shifterManual.Refresh();
+
+
+
+  shifterManual.Setup(&derailleur, pe.getGear(), pe.getGearPosition(), &pe);
+
   shifter = &shifterManual;
-  delay(200);
-  derailleur.ServoOn();
-  Wire.beginTransmission(0x3C);
+
+//  Wire.beginTransmission(0x3C);
+//  if (Wire.endTransmission() == 0) {
+//    Serial.println("LCD OK");
+//    lcd_exist = true;
+//    lcd.begin();
+//    lcd.clear();
+//  }
+//  Wire.endTransmission(0x3C);
+  
+  Wire.beginTransmission(I2C_ADDR_SHIFTER);
   if (Wire.endTransmission() == 0) {
-    Serial.println("LCD OK");
-    lcd_exist = true;
-    lcd.begin();
-    lcd.clear();
+    Serial.println("Shifter OK");
+    shifter_exist = true;
   }
+  Wire.endTransmission(I2C_ADDR_SHIFTER);
+  tone(SPEAKER_PIN, SPEAKER_FREQ, SPEAKER_DUR);
+  delay(1000);
+  tone(SPEAKER_PIN, SPEAKER_FREQ, SPEAKER_DUR);
+  derailleur.ServoOn();
 
 }
 
 void loop()
 {
-  if (lcd_exist) {
 
-    lcd.setCursor(0, 0);
-    lcd.print("F:");
+  if (lcd_exist) {
     lcd.setFontSize(FONT_SIZE_LARGE);
-    if (mode == 1) {
+    lcd.setCursor(0, 0);
+    if (mode == 3) {
+      lcd.print("T:");
+    } else {
+      lcd.print("F:");
+    }
+    if (mode == 4) {
       lcd.printInt(*pe.getGear(), 2);
+    } else if (mode == 3) {
+      lcd.printInt(pe.trim(), 2);
     } else {
       lcd.printInt(*pe.getGearPosition(), 2);
     }
     lcd.print(":");
-    lcd.printInt(derailleur.getServoSeconds(0), 4);
-
+    lcd.printInt(derailleur.getServoMicroSeconds(0), 4);
     lcd.setCursor(0, 3);
-    lcd.setFontSize(FONT_SIZE_LARGE);
-    lcd.print("R:");
-    if (mode == 1) {
+    if (mode == 3) {
+      lcd.print("S:");
+    } else {
+      lcd.print("R:");
+    }
+    if (mode == 4) {
       lcd.printInt(*(pe.getGear() + 1), 2);
+    } else if (mode == 3) {
+      lcd.printInt(pe.sync(), 2);
     } else {
       lcd.printInt(*(pe.getGearPosition() + 1), 2);
     }
-
     lcd.print(":");
-    lcd.printInt(derailleur.getServoSeconds(1), 4);
-
+    lcd.printInt(derailleur.getServoMicroSeconds(1), 4);
     lcd.setCursor(0, 6);
-    lcd.setFontSize(FONT_SIZE_LARGE);
     lcd.print("MODE:");
     lcd.printInt(mode, 2);
   }
+//  if (shifter_exist) {
+    Wire.beginTransmission(I2C_ADDR_SHIFTER);
+    Wire.requestFrom(I2C_ADDR_SHIFTER, 1);    // request 6 bytes from slave device #2
+    while (Wire.available())
+    {
+      byte incomingByte = Wire.read();
+      if (incomingByte != 0) {
+        switch (incomingByte) {
+          case 1:
+            bLeftUp.Trigger();
+            break;
+          case 2:
+            bLeftDown.Trigger();
+            break;
+          case 3:
+            bRightUp.Trigger();
+            break;
+          case 4:
+            bRightDown.Trigger();
+            break;
+          case 5:
+            bSet.Trigger();
+            break;
+
+        }
+        Serial.print("I2C::");
+        Serial.println(incomingByte);
+      }
+    }
+    Wire.endTransmission(I2C_ADDR_SHIFTER);
+//  }
+
+
+
   if (bSet.check()) {
     tone(SPEAKER_PIN, SPEAKER_FREQ, SPEAKER_DUR);
-    if (mode < 3) {
+    if (mode < 4) {
       mode++;
 
     } else {
@@ -117,31 +169,31 @@ void loop()
     }
 
     if (mode == 0) {
-      derailleur.trim(true);
-      shifter->sync(true);
+      shifter->Refresh();
+      derailleur.trim(pe.trim());
+      shifter->sync(pe.sync());
       bLeftUp.setLatency(BUTTON_NORMAL_LATENCY);
       bLeftDown.setLatency(BUTTON_NORMAL_LATENCY);
     } else if (mode == 1 ) {
-      //shifter->Refresh();
       derailleur.trim(false);
       shifter->sync(false);
       bLeftUp.setLatency(BUTTON_NORMAL_LATENCY);
       bLeftDown.setLatency(BUTTON_NORMAL_LATENCY);
     } else if (mode == 2 ) {
-      shifter->Refresh();
-      derailleur.trim(false);
-      shifter->sync(false);
-      bLeftUp.setLatency(BUTTON_NORMAL_LATENCY);
-      bLeftDown.setLatency(BUTTON_NORMAL_LATENCY);
-    }
-    else if ( mode == 3) {
       derailleur.trim(true);
       shifter->sync(false);
       bLeftUp.setLatency(BUTTON_SHORT_LATENCY);
       bLeftDown.setLatency(BUTTON_SHORT_LATENCY);
+    }
+    else if ( mode == 3) {
 
+      bLeftUp.setLatency(BUTTON_NORMAL_LATENCY);
+      bLeftDown.setLatency(BUTTON_NORMAL_LATENCY);
     } else if (mode == 4) {
-
+      derailleur.trim(false);
+      shifter->sync(false);
+      bLeftUp.setLatency(BUTTON_NORMAL_LATENCY);
+      bLeftDown.setLatency(BUTTON_NORMAL_LATENCY);
 
     }
 
@@ -150,6 +202,10 @@ void loop()
     shifter->print();
     Serial.print("MODE:");
     Serial.println(mode);
+    Serial.print("LCD:");
+    Serial.print(lcd_exist);
+    Serial.print("   Shifter:");
+    Serial.println(shifter_exist);
   }
   if (mode == 0) {
     Mode0();
@@ -159,6 +215,8 @@ void loop()
     Mode2();
   } else if (mode == 3) {
     Mode3();
+  } else if (mode == 4) {
+    Mode4();
   }
 
   derailleur.trim();
@@ -190,8 +248,6 @@ void Command() {
 
 void Mode0() {
   digitalWrite(LED_BUILTIN, HIGH);
-
-
   if (bLeftUp.check()) {
     shifter->leftUp();
     Serial.println("Button:LEFT  UP");
@@ -208,17 +264,11 @@ void Mode0() {
     shifter->rightDown();
     Serial.println("Button:RIGHT Down");
   }
-
-
-
-
-
-
 }
 
 
 
-void Mode1() {
+void Mode4() {
   if (millis() % 200 > 100) {
     digitalWrite(LED_BUILTIN, HIGH);
   } else {
@@ -256,16 +306,11 @@ void Mode1() {
     Serial.println( *(pe.getGear() + 1));
     tone(SPEAKER_PIN, SPEAKER_FREQ, SPEAKER_DUR);
   }
-
-
-
-
 }
-void Mode2() {
+void Mode1() {
   if (millis() % 400 > 100) {
     digitalWrite(LED_BUILTIN, HIGH);
   } else {
-
     digitalWrite(LED_BUILTIN, LOW);
   }
   if (bLeftUp.check()) {
@@ -286,21 +331,13 @@ void Mode2() {
     Serial.println("Button:LEFT  TUNE-");
     tone(SPEAKER_PIN, SPEAKER_FREQ, SPEAKER_DUR);
   }
-
-
-
-
-
-
 }
-void Mode3() {
+void Mode2() {
   if (millis() % 800 > 100) {
     digitalWrite(LED_BUILTIN, HIGH);
   } else {
-
     digitalWrite(LED_BUILTIN, LOW);
   }
-
   if (bLeftUp.check()) {
     derailleur.tune(1, 1);
     Serial.println("Button:RIGHT TUNE+");
@@ -322,48 +359,41 @@ void Mode3() {
   if (bRightDown.check()) {
     if (*(pe.getGear() + 1) >= 4) {
       derailleur.shiftTo(*pe.getGearPosition(), 1);
-
     } else {
       shifter->rightDown();
     }
-
-
-
     Serial.println("Button:RIGHT DOWN");
   }
-
 }
 
-void Mode4() {
-  if (millis() % 1000 > 100) {
+void Mode3() {
+  if (millis() % 1200 > 100) {
     digitalWrite(LED_BUILTIN, HIGH);
   } else {
-
     digitalWrite(LED_BUILTIN, LOW);
   }
-
   if (bLeftUp.check()) {
-    derailleur.tune(1, 1);
-    Serial.println("Button:RIGHT TUNE+");
+    //derailleur.tune(1, 1);
+    pe.trim(true);
+    Serial.println("Button:Trim on");
     tone(SPEAKER_PIN, SPEAKER_FREQ, SPEAKER_DUR);
   }
   if (bLeftDown.check()) {
-    derailleur.tune(1, -1);
-    Serial.println("Button:RIGHT TUNE-");
+    //derailleur.tune(1, -1);
+    pe.trim(false);
+    Serial.println("Button:Trim off");
     tone(SPEAKER_PIN, SPEAKER_FREQ, SPEAKER_DUR);
   }
   if (bRightUp.check()) {
-    shifter->rightUp();
-    Serial.println("Button:RIGHT UP");
+    //shifter->rightUp();
+    pe.sync(true);
+    Serial.println("Button:SYNC ON");
   }
   if (bRightDown.check()) {
-    shifter->rightDown();
-    Serial.println("Button:RIGHT DOWN");
+    //shifter->rightDown();
+    pe.sync(false);
+    Serial.println("Button:SYNC OFF");
   }
-
-
-
-
 }
 
 
